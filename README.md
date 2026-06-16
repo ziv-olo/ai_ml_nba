@@ -1,25 +1,32 @@
 # Feature Engineering – NBA Player Longevity Prediction
 
-## Project Overview
-This project focuses on transforming raw NBA player performance statistics into a clean, machine-learning-ready dataset. The primary goal is to engineer predictive features that help forecast whether an NBA player will have a career lasting 5 years or longer. 
+## Project Dataset & Objective
+The dataset (`0f484464-3cc8-4bfc-968b-b1a9fc4d4b1d.csv`) contains statistical baseline performance indicators of rookie NBA basketball players. The objective is to apply standard data preprocessing, feature selection, metric extraction, and scaling methods to construct a predictive feature map for machine learning classifiers. The target metric is a binary indicator column named `target_5yrs` (reflecting if a player's professional longevity reaches 5+ years).
 
-## Dataset Description
-The dataset (`0f484464-3cc8-4bfc-968b-b1a9fc4d4b1d.csv`) contains historical performance statistics for NBA rookies. 
-* [cite_start]**Target Variable:** `target_5yrs` is a binary classification target indicating if the player's career lasted 5 or more years (1 = Yes, 0 = No)[cite: 1].
-* [cite_start]**Predictors:** Various traditional per-game statistics, including minutes played (`min`), points (`pts`), rebounds (`oreb`, `dreb`, `reb`), assists (`ast`), steals (`stl`), blocks (`blk`), and turnovers (`tov`)[cite: 1].
+## Feature Engineering Pipeline Workflow
 
-## Feature Engineering Workflow
-To ensure our machine learning models perform optimally without bias or multicollinearity, the following data processing pipeline was implemented:
+### 1. Data Exploration & Target Class Analysis
+* To prevent leakage, the dependent variable `target_5yrs` was mapped and extracted into its own standalone vector prior to feature transformations.
+* Introduced a visual distribution check using a seaborn count bar chart to test for target class imbalances. This ensures model performance metrics (like accuracy vs F1-score) can be evaluated reliably during modeling.
 
-1.  [cite_start]**Target Isolation:** The `target_5yrs` column was extracted and isolated early to prevent accidental data leakage during transformations[cite: 1].
-2.  [cite_start]**Noise Removal:** Non-predictive identifiers, specifically the index column (`Unnamed: 0`) and player name (`name`), were dropped to prevent the model from memorizing specific players instead of learning generalizable statistical patterns[cite: 1].
-3.  **Redundancy & Multicollinearity Handling:** Highly correlated features (Pearson correlation >= 0.90) were removed. We dropped `fgm`, `fga`, `ftm`, `3pa`, and `reb` to simplify the model and reduce variance.
-4.  **Composite Metric Creation:** We engineered advanced analytics metrics to better capture player impact:
-    * **Points Per Minute (`pts_per_min`)**: Normalizes scoring output based on playing time.
-    * **Efficiency Rating (`efficiency_rating`)**: A PER-style approximation combining total positive box score contributions minus turnovers, normalized per minute.
-    * **Assist-to-Turnover Ratio (`ast_tov_ratio`)**: Evaluates ball security and playmaking efficiency.
-    * **True Shooting Approximation (`true_shooting_approx`)**: Approximates scoring efficiency by factoring in the varying weight of two-pointers, three-pointers, and free throws.
-5.  **Data Cleaning & Imputation:** Infinite values generated during division operations were converted to nulls. Missing numeric values were then filled using median imputation, which is robust to outliers and prevents skewed averages from biasing the dataset.
+### 2. Identifier Noise Removal
+* High-cardinality nominal parameters (`name`) and arbitrary sequence identifiers (`Unnamed: 0`) were dropped from the dataset to prevent the model from over-indexing on non-predictive statistical noise.
 
-## How to Run
-Ensure you have `pandas` and `numpy` installed. Open `nba_feature_engineering.ipynb` in a Jupyter environment and run all cells. The final output is a clean pandas DataFrame ready for supervised learning models like Logistic Regression or Random Forests.
+### 3. Correlation & Multicollinearity Mitigation
+* Calculated a complete Pearson Correlation Coefficient matrix and plotted a visual heatmap to expose structural redundancies.
+* To avoid variance instability in linear models, multi-collinear attributes exhibiting cross-correlations where $|r| \geq 0.90$ were systematically pruned. Pruned features include: `fgm`, `fga`, `ftm`, `3pa`, and `reb`.
+
+### 4. Advanced Composite Feature Extraction
+Four compound basketball metrics were engineered to measure per-minute volume, efficiency, and execution safety:
+* **Points Per Minute (`pts_per_min`)**: Evaluates basic raw scoring density against playing time.
+* **Efficiency Rating (`efficiency_rating`)**: A modified PER box-score metric combining total baseline contributions (`pts` + `oreb` + `dreb` + `ast` + `stl` + `blk` - `tov`) normalized per minute.
+* **Assist-to-Turnover Ratio (`ast_tov_ratio`)**: Quantifies playmaking decision quality and control.
+* **True Shooting Approximation (`true_shooting_approx`)**: Approximates global scoring accuracy factoring in weighted scoring weights of three-point fields, standard fields, and free throws.
+
+### 5. Data Cleaning and Imputation
+* Checked for zero-division edge cases by replacing all operational infinite value flags (`inf`, `-inf`) with null references (`NaN`).
+* Cleaned missing numeric feature elements using median imputation, protecting the final dataset against the skewing effects of outliers.
+
+### 6. Feature Transformation (Standard Scaling)
+* Implemented feature standardization via `StandardScaler`. This centers all predictive feature inputs to a zero mean ($\mu = 0$) and scales them to a uniform unit variance ($\sigma = 1$). 
+* This step is crucial for linear estimators (such as Logistic Regression) and distance metrics (such as Support Vector Classifiers) to prevent high-magnitude metrics from structurally dominating optimization steps.
